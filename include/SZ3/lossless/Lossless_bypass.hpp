@@ -25,8 +25,22 @@ namespace SZ {
             return data;
         }
 
+        uchar* compress(uchar* data, size_t dataLength, size_t& outSize, std::vector<unsigned char>& compr) {
+            outSize = dataLength;
+            return data;
+        }
+
+        uchar* compress(uchar* data, size_t dataLength, size_t& outSize, std::vector<unsigned char>& compr, size_t& offset) {
+            outSize = dataLength;
+            return data;
+        }
+
         uchar *decompress(const uchar *data, size_t &compressedSize) {
             return (uchar *) data;
+        }
+
+        bool postcompressDelete() {
+            return false;
         }
     };
 }

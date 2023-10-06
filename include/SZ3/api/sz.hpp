@@ -51,7 +51,7 @@ conf.absErrorBound = 1E-3; // absolute error bound 1e-3
 char *compressedData = SZ_compress(conf, data, outSize);
  */
 template<class T>
-char *SZ_compress(const SZ::Config &conf, const T *data, size_t &cmpSize) {
+inline char *SZ_compress(const SZ::Config &conf, const T *data, size_t &cmpSize) {
     SZ::Config confCopy(conf);
     char *cmpData;
     if (conf.N == 1) {
@@ -77,7 +77,67 @@ char *SZ_compress(const SZ::Config &conf, const T *data, size_t &cmpSize) {
     return cmpData;
 }
 
+template<class T>
+inline char* SZ_compress(const SZ::Config& conf, const T* data, size_t& cmpSize, std::vector<unsigned char>& compr) {
+    SZ::Config confCopy(conf);
+    char* cmpData;
+    if (conf.N == 1) {
+        cmpData = SZ_compress_impl<T, 1>(confCopy, data, cmpSize, compr);
+    }
+    else if (conf.N == 2) {
+        cmpData = SZ_compress_impl<T, 2>(confCopy, data, cmpSize, compr);
+    }
+    else if (conf.N == 3) {
+        cmpData = SZ_compress_impl<T, 3>(confCopy, data, cmpSize, compr);
+    }
+    else if (conf.N == 4) {
+        cmpData = SZ_compress_impl<T, 4>(confCopy, data, cmpSize, compr);
+    }
+    else {
+        printf("Data dimension higher than 4 is not supported.\n");
+        exit(0);
+    }
+    {
+        //save config
+        SZ::uchar* cmpDataPos = (SZ::uchar*)cmpData + cmpSize;
+        confCopy.save(cmpDataPos);
+        size_t newSize = (char*)cmpDataPos - cmpData;
+        SZ::write(int(newSize - cmpSize), cmpDataPos);
+        cmpSize = (char*)cmpDataPos - cmpData;
+    }
+    return cmpData;
+}
 
+template<class T>
+inline char* SZ_compress(const SZ::Config& conf, const T* data, size_t& cmpSize, std::vector<unsigned char>& compr, size_t& offset) {
+    SZ::Config confCopy(conf);
+    char* cmpData;
+    if (conf.N == 1) {
+        cmpData = SZ_compress_impl<T, 1>(confCopy, data, cmpSize, compr, offset);
+    }
+    else if (conf.N == 2) {
+        cmpData = SZ_compress_impl<T, 2>(confCopy, data, cmpSize, compr, offset);
+    }
+    else if (conf.N == 3) {
+        cmpData = SZ_compress_impl<T, 3>(confCopy, data, cmpSize, compr, offset);
+    }
+    else if (conf.N == 4) {
+        cmpData = SZ_compress_impl<T, 4>(confCopy, data, cmpSize, compr, offset);
+    }
+    else {
+        printf("Data dimension higher than 4 is not supported.\n");
+        exit(0);
+    }
+    {
+        //save config
+        SZ::uchar* cmpDataPos = (SZ::uchar*)cmpData + cmpSize;
+        confCopy.save(cmpDataPos);
+        size_t newSize = (char*)cmpDataPos - cmpData;
+        SZ::write(int(newSize - cmpSize), cmpDataPos);
+        cmpSize = (char*)cmpDataPos - cmpData;
+    }
+    return cmpData;
+}
 /**
  * API for decompression
  * Similar with SZ_decompress(SZ::Config &conf, char *cmpData, size_t cmpSize)
@@ -95,7 +155,7 @@ char *SZ_compress(const SZ::Config &conf, const T *data, size_t &cmpSize) {
 
  */
 template<class T>
-void SZ_decompress(SZ::Config &conf, char *cmpData, size_t cmpSize, T *&decData) {
+inline void SZ_decompress(SZ::Config &conf, char *cmpData, size_t cmpSize, T *decData) {
     {
         //load config
         int confSize;
@@ -133,7 +193,7 @@ void SZ_decompress(SZ::Config &conf, char *cmpData, size_t cmpSize, T *&decData)
  float decompressedData = SZ_decompress(conf, cmpData, cmpSize)
  */
 template<class T>
-T *SZ_decompress(SZ::Config &conf, char *cmpData, size_t cmpSize) {
+inline T *SZ_decompress(SZ::Config &conf, char *cmpData, size_t cmpSize) {
     T *decData = nullptr;
     SZ_decompress<T>(conf, cmpData, cmpSize, decData);
     return decData;

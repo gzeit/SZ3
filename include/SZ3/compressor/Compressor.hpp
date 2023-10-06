@@ -14,6 +14,8 @@ namespace SZ {
             virtual T *decompress(uchar const *cmpData, const size_t &cmpSize, T *decData) = 0;
 
             virtual uchar *compress(const Config &conf, T *data, size_t &compressed_size) = 0;
+            virtual uchar* compress(const Config& conf, T* data, size_t& compressed_size, std::vector<uchar>& compr) = 0;
+            virtual uchar* compress(const Config& conf, T* data, size_t& compressed_size, std::vector<uchar>& compr, size_t& offset) = 0;
         };
     }
 }

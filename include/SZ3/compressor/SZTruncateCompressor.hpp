@@ -41,6 +41,51 @@ namespace SZ {
             return lossless_data;
         }
 
+        uchar* compress(const Config& conf, T* data, size_t& compressed_size, std::vector<uchar>& compr) {
+            if(conf.num * sizeof(T) > compr.size()) compr.resize(conf.num * sizeof(T));
+            auto compressed_data;
+            if (lossless.postcompressDelete()) {
+                compressed_data = new uchar[conf.num * sizeof(T)];
+            }
+            else {
+                if (conf.num * sizeof(T) > compr.size()) compr.resize(conf.num * sizeof(T));
+                compressed_data = compr.data();
+            }
+            auto compressed_data_pos = (uchar*)compressed_data;
+
+            Timer timer(true);
+            truncateArray(data, conf.num, byteLen, compressed_data_pos);
+            timer.stop("Prediction & Quantization");
+
+            uchar* lossless_data = lossless.compress(compressed_data,
+                (uchar*)compressed_data_pos - compressed_data,
+                compressed_size, compr);
+            lossless.postcompress_data(compressed_data);
+            return lossless_data;
+        }
+
+        uchar* compress(const Config& conf, T* data, size_t& compressed_size, std::vector<uchar>& compr, size_t& offset) {
+            if (conf.num * sizeof(T) > compr.size()) compr.resize(conf.num * sizeof(T));
+            auto compressed_data;
+            if (lossless.postcompressDelete()) {
+                compressed_data = new uchar[conf.num * sizeof(T)];
+            }
+            else {
+                if (conf.num * sizeof(T) + offset> compr.size()) compr.resize(conf.num * sizeof(T) + offset);
+                compressed_data = compr.data() + offset;
+            }
+            auto compressed_data_pos = (uchar*)compressed_data;
+
+            Timer timer(true);
+            truncateArray(data, conf.num, byteLen, compressed_data_pos);
+            timer.stop("Prediction & Quantization");
+
+            uchar* lossless_data = lossless.compress(compressed_data,
+                (uchar*)compressed_data_pos - compressed_data,
+                compressed_size, compr, offset);
+            lossless.postcompress_data(compressed_data);
+            return lossless_data;
+        }
         T *decompress(uchar const *cmpData, const size_t &cmpSize, size_t num) {
             T *dec_data = new T[num];
             return decompress(cmpData, cmpSize, dec_data);

@@ -95,6 +95,49 @@ char *SZ_compress_LorenzoReg(SZ::Config &conf, T *data, size_t &outSize) {
     return cmpData;
 }
 
+template<class T, SZ::uint N>
+char* SZ_compress_LorenzoReg(SZ::Config& conf, T* data, size_t& outSize, std::vector<unsigned char>& compr) {
+
+    assert(N == conf.N);
+    assert(conf.cmprAlgo == SZ::ALGO_LORENZO_REG);
+    SZ::calAbsErrorBound(conf, data);
+
+    char* cmpData;
+    auto quantizer = SZ::LinearQuantizer<T>(conf.absErrorBound, conf.quantbinCnt / 2);
+    if (N == 3 && !conf.regression2) {
+        // use fast version for 3D
+        auto sz = SZ::make_sz_general_compressor<T, N>(SZ::make_sz_fast_frontend<T, N>(conf, quantizer), SZ::HuffmanEncoder<int>(),
+            SZ::Lossless_zstd());
+        cmpData = (char*)sz->compress(conf, data, outSize, compr);
+    }
+    else {
+        auto sz = make_lorenzo_regression_compressor<T, N>(conf, quantizer, SZ::HuffmanEncoder<int>(), SZ::Lossless_zstd());
+        cmpData = (char*)sz->compress(conf, data, outSize, compr);
+    }
+    return cmpData;
+}
+
+template<class T, SZ::uint N>
+char* SZ_compress_LorenzoReg(SZ::Config& conf, T* data, size_t& outSize, std::vector<unsigned char>& compr, size_t& offset) {
+
+    assert(N == conf.N);
+    assert(conf.cmprAlgo == SZ::ALGO_LORENZO_REG);
+    SZ::calAbsErrorBound(conf, data);
+
+    char* cmpData;
+    auto quantizer = SZ::LinearQuantizer<T>(conf.absErrorBound, conf.quantbinCnt / 2);
+    if (N == 3 && !conf.regression2) {
+        // use fast version for 3D
+        auto sz = SZ::make_sz_general_compressor<T, N>(SZ::make_sz_fast_frontend<T, N>(conf, quantizer), SZ::HuffmanEncoder<int>(),
+            SZ::Lossless_zstd());
+        cmpData = (char*)sz->compress(conf, data, outSize, compr, offset);
+    }
+    else {
+        auto sz = make_lorenzo_regression_compressor<T, N>(conf, quantizer, SZ::HuffmanEncoder<int>(), SZ::Lossless_zstd());
+        cmpData = (char*)sz->compress(conf, data, outSize, compr, offset);
+    }
+    return cmpData;
+}
 
 template<class T, SZ::uint N>
 void SZ_decompress_LorenzoReg(const SZ::Config &conf, char *cmpData, size_t cmpSize, T *decData) {

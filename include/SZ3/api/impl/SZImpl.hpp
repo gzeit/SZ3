@@ -7,7 +7,7 @@
 #include <cmath>
 
 template<class T, SZ::uint N>
-char *SZ_compress_impl(SZ::Config &conf, const T *data, size_t &outSize) {
+inline char *SZ_compress_impl(SZ::Config &conf, const T *data, size_t &outSize) {
 #ifndef _OPENMP
     conf.openmp=false;
 #endif
@@ -19,10 +19,40 @@ char *SZ_compress_impl(SZ::Config &conf, const T *data, size_t &outSize) {
         return SZ_compress_dispatcher<T, N>(conf, dataCopy.data(), outSize);
     }
 }
+template<class T, SZ::uint N>
+inline char* SZ_compress_impl(SZ::Config& conf, const T* data, size_t& outSize, std::vector<unsigned char>& compr) {
+#ifndef _OPENMP
+    conf.openmp = false;
+#endif
+    if (conf.openmp) {
+        //dataCopy for openMP is handled by each thread
+        return SZ_compress_OMP<T, N>(conf, data, outSize);
+    }
+    else {
+        std::vector<T> dataCopy(data, data + conf.num);
+        return SZ_compress_dispatcher<T, N>(conf, dataCopy.data(), outSize, compr);
+    }
+}
+
+template<class T, SZ::uint N>
+inline char* SZ_compress_impl(SZ::Config& conf, const T* data, size_t& outSize, std::vector<unsigned char>& compr, size_t& offset) {
+#ifndef _OPENMP
+    conf.openmp = false;
+#endif
+    if (conf.openmp) {
+        //dataCopy for openMP is handled by each thread
+        return SZ_compress_OMP<T, N>(conf, data, outSize);
+    }
+    else {
+        std::vector<T> dataCopy(data, data + conf.num);
+        return SZ_compress_dispatcher<T, N>(conf, dataCopy.data(), outSize, compr, offset);
+    }
+}
+
 
 
 template<class T, SZ::uint N>
-void SZ_decompress_impl(SZ::Config &conf, char *cmpData, size_t cmpSize, T *decData) {
+inline void SZ_decompress_impl(SZ::Config &conf, char *cmpData, size_t cmpSize, T *decData) {
 
 
 #ifndef _OPENMP

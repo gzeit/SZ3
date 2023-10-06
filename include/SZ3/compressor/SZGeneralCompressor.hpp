@@ -51,6 +51,68 @@ namespace SZ {
             return lossless_data;
         }
 
+        uchar* compress(const Config& conf, T* data, size_t& compressed_size, std::vector<uchar>& compr) {
+
+            std::vector<int> quant_inds = frontend.compress(data);
+
+            encoder.preprocess_encode(quant_inds, 0);
+            size_t bufferSize = 1.2 * (frontend.size_est() + encoder.size_est() + sizeof(T) * quant_inds.size());
+            uchar* buffer;
+            if (lossless.postcompressDelete()) {
+                buffer = new uchar[bufferSize];
+            }
+            else {
+                if (bufferSize > compr.size()) compr.resize(bufferSize);
+                buffer = compr.data();
+            }
+             
+            uchar* buffer_pos = buffer;
+
+            frontend.save(buffer_pos);
+
+            encoder.save(buffer_pos);
+            encoder.encode(quant_inds, buffer_pos);
+            encoder.postprocess_encode();
+
+            assert(buffer_pos - buffer < bufferSize);
+            
+            uchar* lossless_data = lossless.compress(buffer, buffer_pos - buffer, compressed_size, compr);
+            lossless.postcompress_data(buffer);
+
+            return lossless_data;
+        }
+
+        uchar* compress(const Config& conf, T* data, size_t& compressed_size, std::vector<uchar>& compr, size_t& offset) {
+
+            std::vector<int> quant_inds = frontend.compress(data);
+
+            encoder.preprocess_encode(quant_inds, 0);
+            size_t bufferSize = 1.2 * (frontend.size_est() + encoder.size_est() + sizeof(T) * quant_inds.size());
+            uchar* buffer;
+            if (lossless.postcompressDelete()) {
+                buffer = new uchar[bufferSize];
+            }
+            else {
+                if (bufferSize + offset > compr.size()) compr.resize(bufferSize + offset);
+                buffer = compr.data() + offset;
+            }
+
+            uchar* buffer_pos = buffer;
+
+            frontend.save(buffer_pos);
+
+            encoder.save(buffer_pos);
+            encoder.encode(quant_inds, buffer_pos);
+            encoder.postprocess_encode();
+
+            assert(buffer_pos - buffer < bufferSize);
+
+            uchar* lossless_data = lossless.compress(buffer, buffer_pos - buffer, compressed_size, compr, offset);
+            lossless.postcompress_data(buffer);
+
+            return lossless_data;
+        }
+
         T *decompress(uchar const *cmpData, const size_t &cmpSize, size_t num) {
             T *dec_data = new T[num];
             return decompress(cmpData, cmpSize, dec_data);

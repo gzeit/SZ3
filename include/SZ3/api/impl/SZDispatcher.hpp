@@ -29,6 +29,51 @@ char *SZ_compress_dispatcher(SZ::Config &conf, T *data, size_t &outSize) {
     return cmpData;
 }
 
+template<class T, SZ::uint N>
+char* SZ_compress_dispatcher(SZ::Config& conf, T* data, size_t& outSize, std::vector<unsigned char>& compr) {
+
+    assert(N == conf.N);
+    SZ::calAbsErrorBound(conf, data);
+
+    char* cmpData;
+    if (conf.absErrorBound == 0) {
+        auto zstd = SZ::Lossless_zstd();
+        cmpData = (char*)zstd.compress((SZ::uchar*)data, conf.num * sizeof(T), outSize, compr);
+    }
+    else if (conf.cmprAlgo == SZ::ALGO_LORENZO_REG) {
+        cmpData = (char*)SZ_compress_LorenzoReg<T, N>(conf, data, outSize, compr);
+    }
+    else if (conf.cmprAlgo == SZ::ALGO_INTERP) {
+        cmpData = (char*)SZ_compress_Interp<T, N>(conf, data, outSize, compr);
+    }
+    else if (conf.cmprAlgo == SZ::ALGO_INTERP_LORENZO) {
+        cmpData = (char*)SZ_compress_Interp_lorenzo<T, N>(conf, data, outSize, compr);
+    }
+    return cmpData;
+}
+
+template<class T, SZ::uint N>
+char* SZ_compress_dispatcher(SZ::Config& conf, T* data, size_t& outSize, std::vector<unsigned char>& compr, size_t& offset) {
+
+    assert(N == conf.N);
+    SZ::calAbsErrorBound(conf, data);
+
+    char* cmpData;
+    if (conf.absErrorBound == 0) {
+        auto zstd = SZ::Lossless_zstd();
+        cmpData = (char*)zstd.compress((SZ::uchar*)data, conf.num * sizeof(T), outSize, compr, offset);
+    }
+    else if (conf.cmprAlgo == SZ::ALGO_LORENZO_REG) {
+        cmpData = (char*)SZ_compress_LorenzoReg<T, N>(conf, data, outSize, compr, offset);
+    }
+    else if (conf.cmprAlgo == SZ::ALGO_INTERP) {
+        cmpData = (char*)SZ_compress_Interp<T, N>(conf, data, outSize, compr, offset);
+    }
+    else if (conf.cmprAlgo == SZ::ALGO_INTERP_LORENZO) {
+        cmpData = (char*)SZ_compress_Interp_lorenzo<T, N>(conf, data, outSize, compr, offset);
+    }
+    return cmpData;
+}
 
 template<class T, SZ::uint N>
 void SZ_decompress_dispatcher(SZ::Config &conf, char *cmpData, size_t cmpSize, T *decData) {

@@ -66,7 +66,6 @@ namespace SZ {
             memset(huffmanTree, 0, sizeof(HuffmanTree));
             huffmanTree->stateNum = stateNum;
             huffmanTree->allNodes = 2 * stateNum;
-
             huffmanTree->pool = (struct node_t *) malloc(huffmanTree->allNodes * 2 * sizeof(struct node_t));
             huffmanTree->qqq = (node *) malloc(huffmanTree->allNodes * 2 * sizeof(node));
             huffmanTree->code = (uint64_t **) malloc(huffmanTree->stateNum * sizeof(uint64_t *));
@@ -430,6 +429,7 @@ namespace SZ {
                 n->c = c;
                 n->freq = freq;
                 n->t = 1;
+                //std::cout << "create" << std::endl;
             } else {
                 n->left = a;
                 n->right = b;
@@ -541,15 +541,13 @@ namespace SZ {
             }
 
             int stateNum = max - offset + 2;
+            //stateNum = std::min(stateNum, (int)length * 4);
             huffmanTree = createHuffmanTree(stateNum);
-
             for (const auto &f: frequency) {
                 qinsert(new_node(f.second, f.first - offset, 0, 0));
             }
-
             while (huffmanTree->qend > 2)
                 qinsert(new_node(0, 0, qremove(), qremove()));
-
             build_code(huffmanTree->qq[1], 0, 0, 0);
             treeRoot = huffmanTree->qq[1];
 

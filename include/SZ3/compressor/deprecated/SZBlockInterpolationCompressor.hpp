@@ -173,6 +173,151 @@ namespace SZ {
             return lossless_data;
         }
 
+        // compress given the error bound
+        uchar* compress(const Config& conf, T* data, size_t& compressed_size, std::vector<uchar>& compr) {
+
+            block_size = conf.blockSize;
+            num_elements = conf.num;
+            interpolator_id = conf.interpAlgo;
+            direction_sequence_id = conf.interpDirection;
+
+
+            std::copy_n(conf.dims.begin(), N, global_dimensions.begin());
+
+            quant_inds.clear();
+            auto range = std::make_shared<SZ::multi_dimensional_range<T, N>>(data,
+                std::begin(global_dimensions),
+                std::end(global_dimensions),
+                block_size, 0);
+            quantizer.precompress_data();
+            for (auto block = range->begin(); block != range->end(); ++block) {
+
+                auto block_global_idx = block.get_global_index();
+                auto interp_end_idx = block.get_global_index();
+                uint max_interp_level = 1;
+                for (int i = 0; i < N; i++) {
+                    size_t block_dim = (block_global_idx[i] + block_size > global_dimensions[i]) ?
+                        global_dimensions[i] - block_global_idx[i] : block_size;
+                    interp_end_idx[i] += block_dim - 1;
+                    if (max_interp_level < ceil(log2(block_dim))) {
+                        max_interp_level = (uint)ceil(log2(block_dim));
+                    }
+                }
+                quant_inds.push_back(quantizer.quantize_and_overwrite(*block, 0));
+
+                for (uint level = max_interp_level; level > 0 && level <= max_interp_level; level--) {
+                    uint stride_ip = 1U << (level - 1);
+                    block_interpolation(data, block.get_global_index(), interp_end_idx, PB_predict_overwrite,
+                        interpolators[interpolator_id], direction_sequence_id, stride_ip);
+                }
+            }
+            quantizer.postcompress_data();
+            //            predictor.print();
+
+            encoder.preprocess_encode(quant_inds, 0);
+            size_t bufferSize = 1.2 * (quantizer.size_est() + encoder.size_est() + sizeof(T) * quant_inds.size());
+            uchar* buffer;
+            if (lossless.postcompressDelete()) {
+                buffer = new uchar[bufferSize];
+            }
+            else {
+                if (bufferSize > compr.size()) compr.resize(bufferSize);
+                buffer = compr.data();
+            }
+            uchar* buffer_pos = buffer;
+
+            write(global_dimensions.data(), N, buffer_pos);
+            write(block_size, buffer_pos);
+            write(interpolator_id, buffer_pos);
+            write(direction_sequence_id, buffer_pos);
+
+            quantizer.save(buffer_pos);
+
+            encoder.save(buffer_pos);
+            encoder.encode(quant_inds, buffer_pos);
+            encoder.postprocess_encode();
+
+            assert(buffer_pos - buffer < bufferSize);
+
+            uchar* lossless_data = lossless.compress(buffer,
+                buffer_pos - buffer,
+                compressed_size, compr);
+            lossless.postcompress_data(buffer);
+
+            return lossless_data;
+        }
+        uchar* compress(const Config& conf, T* data, size_t& compressed_size, std::vector<uchar>& compr, size_t& offset) {
+
+            block_size = conf.blockSize;
+            num_elements = conf.num;
+            interpolator_id = conf.interpAlgo;
+            direction_sequence_id = conf.interpDirection;
+
+
+            std::copy_n(conf.dims.begin(), N, global_dimensions.begin());
+
+            quant_inds.clear();
+            auto range = std::make_shared<SZ::multi_dimensional_range<T, N>>(data,
+                std::begin(global_dimensions),
+                std::end(global_dimensions),
+                block_size, 0);
+            quantizer.precompress_data();
+            for (auto block = range->begin(); block != range->end(); ++block) {
+
+                auto block_global_idx = block.get_global_index();
+                auto interp_end_idx = block.get_global_index();
+                uint max_interp_level = 1;
+                for (int i = 0; i < N; i++) {
+                    size_t block_dim = (block_global_idx[i] + block_size > global_dimensions[i]) ?
+                        global_dimensions[i] - block_global_idx[i] : block_size;
+                    interp_end_idx[i] += block_dim - 1;
+                    if (max_interp_level < ceil(log2(block_dim))) {
+                        max_interp_level = (uint)ceil(log2(block_dim));
+                    }
+                }
+                quant_inds.push_back(quantizer.quantize_and_overwrite(*block, 0));
+
+                for (uint level = max_interp_level; level > 0 && level <= max_interp_level; level--) {
+                    uint stride_ip = 1U << (level - 1);
+                    block_interpolation(data, block.get_global_index(), interp_end_idx, PB_predict_overwrite,
+                        interpolators[interpolator_id], direction_sequence_id, stride_ip);
+                }
+            }
+            quantizer.postcompress_data();
+            //            predictor.print();
+
+            encoder.preprocess_encode(quant_inds, 0);
+            size_t bufferSize = 1.2 * (quantizer.size_est() + encoder.size_est() + sizeof(T) * quant_inds.size());
+            uchar* buffer;
+            if (lossless.postcompressDelete()) {
+                buffer = new uchar[bufferSize];
+            }
+            else {
+                if (bufferSize +offset > compr.size()) compr.resize(bufferSize + offset);
+                buffer = compr.data() + offset;
+            }
+            uchar* buffer_pos = buffer;
+
+            write(global_dimensions.data(), N, buffer_pos);
+            write(block_size, buffer_pos);
+            write(interpolator_id, buffer_pos);
+            write(direction_sequence_id, buffer_pos);
+
+            quantizer.save(buffer_pos);
+
+            encoder.save(buffer_pos);
+            encoder.encode(quant_inds, buffer_pos);
+            encoder.postprocess_encode();
+
+            assert(buffer_pos - buffer < bufferSize);
+
+            uchar* lossless_data = lossless.compress(buffer,
+                buffer_pos - buffer,
+                compressed_size, compr);
+            lossless.postcompress_data(buffer);
+
+            return lossless_data;
+        }
     private:
 
         enum PredictorBehavior {

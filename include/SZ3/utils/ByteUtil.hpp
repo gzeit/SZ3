@@ -152,7 +152,7 @@ namespace SZ {
         b[7] = (unsigned char) (num);
     }
 
-    std::string floatToBinary(float f) {
+    inline std::string floatToBinary(float f) {
         lfloat u;
         u.value = f;
         std::string str(32, '0');
@@ -188,7 +188,7 @@ namespace SZ {
         }
     }
 
-    std::vector<uchar> LeadingBitsEncode(float pre, float data) {
+    inline std::vector<uchar> LeadingBitsEncode(float pre, float data) {
         lfloat lfBuf_pre;
         lfloat lfBuf_cur;
 
@@ -216,7 +216,7 @@ namespace SZ {
         return bytes;
     }
 
-    float LeadingBitsDecode(float pre, std::vector<uchar> bytes) {
+    inline float LeadingBitsDecode(float pre, std::vector<uchar> bytes) {
         lfloat lfBuf_pre;
         lfloat lfBuf_cur;
 

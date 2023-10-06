@@ -19,6 +19,10 @@ namespace SZ {
 
         Lossless_zstd(int comp_level) : compression_level(comp_level) {};
 
+        bool postcompressDelete() {
+            return true;
+        }
+
         uchar *compress(uchar *data, size_t dataLength, size_t &outSize) {
             size_t estimatedCompressedSize = std::max(size_t(dataLength * 1.2), size_t(400));
             uchar *compressBytes = new uchar[estimatedCompressedSize];
@@ -27,6 +31,32 @@ namespace SZ {
 
             outSize = ZSTD_compress(compressBytesPos, estimatedCompressedSize, data, dataLength,
                                     compression_level);
+            outSize += sizeof(size_t);
+            return compressBytes;
+        }
+
+        uchar* compress(uchar* data, size_t dataLength, size_t& outSize, std::vector<uchar>& compr) {
+            size_t estimatedCompressedSize = std::max(size_t(dataLength * 1.2), size_t(400));
+            if (estimatedCompressedSize > compr.size()) compr.resize(estimatedCompressedSize);
+            uchar* compressBytes = compr.data();
+            uchar* compressBytesPos = compressBytes;
+            write(dataLength, compressBytesPos);
+
+            outSize = ZSTD_compress(compressBytesPos, estimatedCompressedSize, data, dataLength,
+                compression_level);
+            outSize += sizeof(size_t);
+            return compressBytes;
+        }
+
+        uchar* compress(uchar* data, size_t dataLength, size_t& outSize, std::vector<uchar>& compr, size_t& offset) {
+            size_t estimatedCompressedSize = std::max(size_t(dataLength * 1.2), size_t(400));
+            if (estimatedCompressedSize + offset > compr.size()) compr.resize(estimatedCompressedSize + offset);
+            uchar* compressBytes = (compr.data() + offset);
+            uchar* compressBytesPos = compressBytes;
+            write(dataLength, compressBytesPos);
+
+            outSize = ZSTD_compress(compressBytesPos, estimatedCompressedSize, data, dataLength,
+                compression_level);
             outSize += sizeof(size_t);
             return compressBytes;
         }
